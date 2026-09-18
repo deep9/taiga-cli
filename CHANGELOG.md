@@ -8,6 +8,10 @@ The release workflow publishes the section matching the tag as the GitHub Releas
 
 ## [Unreleased]
 
+### Added
+
+- `--tags` on `story create`, `story edit`, `issue create`, and `issue edit` sets a work item's tags. Repeat the flag or comma-separate values for more than one; on `edit` it replaces the full tag list, and passing an empty string clears it. `story list`, `story view`, `issue list`, and `issue view` now show a `TAGS` column and `Tags` line, and `--json` carries them as a `tags` array.
+
 ## [0.7.0] - 2026-09-14
 
 Taiga CLI now works on a Linux server, container or SSH session without a desktop, where every command used to stop at a keyring error. Credentials go to a file only when there is provably no keyring service, and `--credential-store` lets you choose instead. Commands that refresh an expired token at the same time no longer invalidate each other's login, and `auth status` says where the credential in use is kept.
