@@ -245,6 +245,86 @@ func TestDryRunPerformsNoMutation(t *testing.T) {
 	}
 }
 
+func TestTagsFlagOnStoryAndIssue(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/projects/by_slug":
+			_, _ = io.WriteString(w, `{"id":1,"name":"Demo","slug":"demo"}`)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/issues/by_ref":
+			_, _ = io.WriteString(w, `{"id":2,"ref":3,"project":1,"subject":"Issue","version":7,"status_extra_info":{"name":"New"},"priority_extra_info":{"name":"Normal"},"severity_extra_info":{"name":"Normal"},"type_extra_info":{"name":"Bug"},"tags":[["bug","#ff0000"],["urgent",null]]}`)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/issues":
+			w.Header().Set("X-Pagination-Count", "1")
+			_, _ = io.WriteString(w, `[{"id":2,"ref":3,"project":1,"subject":"Issue","version":7,"status_extra_info":{"name":"New"},"tags":[["bug","#ff0000"],["urgent",null]]}]`)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/userstories/by_ref":
+			_, _ = io.WriteString(w, `{"id":2,"ref":3,"project":1,"subject":"Story","version":7,"status_extra_info":{"name":"New"},"assigned_users":[],"is_closed":false,"tags":[["bug","#ff0000"],["urgent",null]]}`)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/userstories":
+			w.Header().Set("X-Pagination-Count", "1")
+			_, _ = io.WriteString(w, `[{"id":2,"ref":3,"project":1,"subject":"Story","version":7,"status_extra_info":{"name":"New"},"tags":[["bug","#ff0000"],["urgent",null]]}]`)
+		case r.Method == http.MethodPatch || r.Method == http.MethodPost:
+			t.Fatalf("dry-run command sent a mutating request %s %s", r.Method, r.URL.Path)
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	planTags := func(t *testing.T, args []string) any {
+		t.Helper()
+		app, out, stderr, _ := testApp(t, server)
+		if code := app.Execute(context.Background(), args); code != ExitSuccess {
+			t.Fatalf("taiga %v exit=%d stderr=%s", args, code, stderr.String())
+		}
+		var envelope map[string]any
+		if err := json.Unmarshal(out.Bytes(), &envelope); err != nil {
+			t.Fatalf("taiga %v output is not JSON: %v: %s", args, err, out.String())
+		}
+		plan := envelope["plan"].(map[string]any)
+		changes := plan["changes"].(map[string]any)
+		return changes["tags"]
+	}
+	wantTags := []any{"bug", "urgent"}
+
+	for _, args := range [][]string{
+		{"--json", "story", "create", "--subject", "New story", "--tags", "bug,urgent", "--dry-run"},
+		{"--json", "issue", "create", "--subject", "New issue", "--tags", "bug,urgent", "--dry-run"},
+		{"--json", "story", "edit", "3", "--tags", "bug,urgent", "--dry-run"},
+		{"--json", "issue", "edit", "3", "--tags", "bug,urgent", "--dry-run"},
+	} {
+		got := planTags(t, args)
+		gotSlice, ok := got.([]any)
+		if !ok || len(gotSlice) != len(wantTags) || gotSlice[0] != wantTags[0] || gotSlice[1] != wantTags[1] {
+			t.Fatalf("taiga %v changes.tags = %#v, want %#v", args, got, wantTags)
+		}
+	}
+
+	view := func(t *testing.T, args []string) []any {
+		t.Helper()
+		app, out, stderr, _ := testApp(t, server)
+		if code := app.Execute(context.Background(), args); code != ExitSuccess {
+			t.Fatalf("taiga %v exit=%d stderr=%s", args, code, stderr.String())
+		}
+		var envelope map[string]any
+		if err := json.Unmarshal(out.Bytes(), &envelope); err != nil {
+			t.Fatalf("taiga %v output is not JSON: %v: %s", args, err, out.String())
+		}
+		data, ok := envelope["data"].(map[string]any)
+		if !ok {
+			t.Fatalf("taiga %v data = %#v", args, envelope["data"])
+		}
+		tags, _ := data["tags"].([]any)
+		return tags
+	}
+	for _, args := range [][]string{
+		{"--json", "story", "view", "3"},
+		{"--json", "issue", "view", "3"},
+	} {
+		tags := view(t, args)
+		if len(tags) != 2 || tags[0] != "bug" || tags[1] != "urgent" {
+			t.Fatalf("taiga %v data.tags = %#v", args, tags)
+		}
+	}
+}
+
 func TestTokenLoginSavesKeyringEntry(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/users/me" || r.Header.Get("Authorization") != "Bearer supplied-token" {
