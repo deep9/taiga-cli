@@ -10,7 +10,7 @@ Release workflow 會把對應版本的段落與英文版 [CHANGELOG.md](CHANGELO
 
 ### 新增
 
-- `story create`、`story edit`、`issue create` 與 `issue edit` 新增 `--tags`，用來設定工作項目的標籤。可重複指定該旗標，或以逗號分隔多個值；在 `edit` 中會直接取代整組標籤，傳入空字串則會清空。`story list`、`story view`、`issue list` 與 `issue view` 現在也會顯示 `TAGS` 欄位／`Tags` 列，`--json` 則以 `tags` 陣列提供。
+- `story create`、`story edit`、`issue create` 與 `issue edit` 新增 `--tags`，用來設定工作項目的標籤。可重複指定該旗標，或以逗號分隔多個值；每個值前後的空白會自動去除。在 `edit` 中會直接取代整組標籤，傳入空字串則會清空。Taiga 會自動將標籤轉為小寫，因此 `Mixed Case` 會存成 `mixed case`。`story list`、`story view`、`issue list` 與 `issue view` 現在也會顯示 `TAGS` 欄位／`Tags` 列，`--json` 一律會提供 `tags` 陣列，即使沒有任何標籤也一樣。
 
 ## [0.7.0] - 2026-09-14
 

@@ -42,6 +42,19 @@ func TestTagUnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestTagUnmarshalJSONOverwritesExistingValue(t *testing.T) {
+	got := Tag{Name: "old", Color: strPtr("#000000")}
+	if err := json.Unmarshal([]byte(`[null,null]`), &got); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if got.Name != "" {
+		t.Fatalf("Name = %q, want empty; a decode into a populated Tag must not keep the stale value", got.Name)
+	}
+	if got.Color != nil {
+		t.Fatalf("Color = %v, want nil", got.Color)
+	}
+}
+
 func TestTagMarshalJSON(t *testing.T) {
 	tests := []struct {
 		name string

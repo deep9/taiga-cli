@@ -27,7 +27,7 @@ type storyView struct {
 	IsClosed      bool             `json:"is_closed"`
 	IsWatcher     bool             `json:"is_watcher"`
 	IsBlocked     bool             `json:"is_blocked"`
-	Tags          []string         `json:"tags,omitempty"`
+	Tags          []string         `json:"tags"`
 	CreatedDate   string           `json:"created_date,omitempty"`
 	ModifiedDate  string           `json:"modified_date,omitempty"`
 }
@@ -176,6 +176,7 @@ func (a *App) storyCreateCommand() *cobra.Command {
 				}
 				request.Milestone = &selected.ID
 			}
+			tags = normalizeTags(tags)
 			if len(tags) > 0 {
 				request.Tags = tags
 			}
@@ -202,9 +203,9 @@ func (a *App) storyCreateCommand() *cobra.Command {
 
 type editStoryOptions struct {
 	Subject, Description, Status, Sprint string
-	Tags                                  []string
-	BaseVersion                           int
-	DryRun                                bool
+	Tags                                 []string
+	BaseVersion                          int
+	DryRun                               bool
 }
 
 func (a *App) storyEditCommand() *cobra.Command {
@@ -253,8 +254,8 @@ func (a *App) storyEditCommand() *cobra.Command {
 				request.Milestone = milestone
 			}
 			if cmd.Flags().Changed("tags") {
-				tags := options.Tags
-				request.Tags = &tags
+				options.Tags = normalizeTags(options.Tags)
+				request.Tags = &options.Tags
 			}
 			if options.DryRun {
 				return a.renderDryRun("edit story", fmt.Sprintf("%s#%d", target.Project.Slug, target.Story.Ref), map[string]any{"base_version": request.Version, "subject": request.Subject, "description": request.Description, "status": options.Status, "sprint": options.Sprint, "tags": options.Tags})
@@ -465,14 +466,26 @@ func makeStoryView(story taiga.UserStory, projectSlug string) storyView {
 }
 
 func tagNames(tags []taiga.Tag) []string {
-	if len(tags) == 0 {
-		return nil
-	}
 	names := make([]string, len(tags))
 	for i, t := range tags {
 		names[i] = t.Name
 	}
 	return names
+}
+
+// normalizeTags trims whitespace from each tag and drops the ones that end
+// up empty. It never returns nil, so a result of zero tags still marshals
+// as "tags": [] rather than being dropped or sent as null.
+func normalizeTags(tags []string) []string {
+	result := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			continue
+		}
+		result = append(result, trimmed)
+	}
+	return result
 }
 
 func (a *App) resolveStoryStatus(ctx context.Context, client *taiga.Client, projectID int64, name string, requireClosed bool) (taiga.UserStoryStatus, error) {

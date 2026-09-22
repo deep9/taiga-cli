@@ -15,10 +15,11 @@ func (t *Tag) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &pair); err != nil {
 		return err
 	}
+	var name string
 	if pair[0] != nil {
-		t.Name = *pair[0]
+		name = *pair[0]
 	}
-	t.Color = pair[1]
+	*t = Tag{Name: name, Color: pair[1]}
 	return nil
 }
 

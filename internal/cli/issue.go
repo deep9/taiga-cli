@@ -12,20 +12,20 @@ import (
 )
 
 type issueView struct {
-	ID           int64  `json:"id"`
-	Ref          int    `json:"ref"`
-	Project      string `json:"project"`
-	Subject      string `json:"subject"`
-	Description  string `json:"description,omitempty"`
-	Version      int    `json:"version"`
-	Status       string `json:"status"`
-	Priority     string `json:"priority"`
-	Severity     string `json:"severity"`
-	Type         string `json:"type"`
+	ID           int64    `json:"id"`
+	Ref          int      `json:"ref"`
+	Project      string   `json:"project"`
+	Subject      string   `json:"subject"`
+	Description  string   `json:"description,omitempty"`
+	Version      int      `json:"version"`
+	Status       string   `json:"status"`
+	Priority     string   `json:"priority"`
+	Severity     string   `json:"severity"`
+	Type         string   `json:"type"`
 	Assignee     string   `json:"assignee,omitempty"`
 	IsClosed     bool     `json:"is_closed"`
 	IsWatcher    bool     `json:"is_watcher"`
-	Tags         []string `json:"tags,omitempty"`
+	Tags         []string `json:"tags"`
 	CreatedDate  string   `json:"created_date,omitempty"`
 	ModifiedDate string   `json:"modified_date,omitempty"`
 }
@@ -179,6 +179,7 @@ func (a *App) issueCreateCommand() *cobra.Command {
 				}
 				request.AssignedTo = &userID
 			}
+			tags = normalizeTags(tags)
 			if len(tags) > 0 {
 				request.Tags = tags
 			}
@@ -218,9 +219,9 @@ func (a *App) issueCreateCommand() *cobra.Command {
 
 type editIssueOptions struct {
 	Subject, Description, Status, Priority, Severity, Type, Assignee string
-	Tags                                                              []string
-	BaseVersion                                                       int
-	DryRun                                                            bool
+	Tags                                                             []string
+	BaseVersion                                                      int
+	DryRun                                                           bool
 }
 
 func (a *App) issueEditCommand() *cobra.Command {
@@ -296,8 +297,8 @@ func (a *App) issueEditCommand() *cobra.Command {
 				request.AssignedTo = &userID
 			}
 			if cmd.Flags().Changed("tags") {
-				tags := options.Tags
-				request.Tags = &tags
+				options.Tags = normalizeTags(options.Tags)
+				request.Tags = &options.Tags
 			}
 			if options.DryRun {
 				return a.renderDryRun("edit", fmt.Sprintf("%s#%d", target.Project.Slug, target.Issue.Ref), map[string]any{"base_version": request.Version, "subject": request.Subject, "description": request.Description, "status": options.Status, "priority": options.Priority, "severity": options.Severity, "type": options.Type, "assignee": options.Assignee, "tags": options.Tags})

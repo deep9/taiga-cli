@@ -10,7 +10,7 @@ The release workflow publishes the section matching the tag as the GitHub Releas
 
 ### Added
 
-- `--tags` on `story create`, `story edit`, `issue create`, and `issue edit` sets a work item's tags. Repeat the flag or comma-separate values for more than one; on `edit` it replaces the full tag list, and passing an empty string clears it. `story list`, `story view`, `issue list`, and `issue view` now show a `TAGS` column and `Tags` line, and `--json` carries them as a `tags` array.
+- `--tags` on `story create`, `story edit`, `issue create`, and `issue edit` sets a work item's tags. Repeat the flag or comma-separate values for more than one; whitespace around each value is trimmed. On `edit` it replaces the full tag list, and passing an empty string clears it. Taiga lowercases tag names on its own, so `Mixed Case` is stored as `mixed case`. `story list`, `story view`, `issue list`, and `issue view` now show a `TAGS` column and `Tags` line, and `--json` always carries a `tags` array, even when there are no tags.
 
 ## [0.7.0] - 2026-09-14
 
